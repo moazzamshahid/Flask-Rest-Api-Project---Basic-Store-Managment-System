@@ -1,0 +1,110 @@
+from flask import Flask,request
+from flask_smorest import abort
+from db import stores,items
+import uuid
+
+app=Flask(__name__)
+
+#from server prespective
+#post used to recieve data
+#get used to send data back only
+
+@app.get("/store/<string:store_id>")
+def get_store(store_id):
+    try:
+        return stores[store_id]
+    except KeyError:
+        abort(401,message="store not found.")
+
+@app.get("/store")
+def get_stores():
+    return {"stores":list(stores.values())}
+
+
+@app.post("/store")
+def create_store():
+    request_data=request.get_json()
+    if ( "name" not in request_data    
+    ):
+        abort(400,
+        message="bad request. name not found")
+    for store in stores.values():
+        if (store["name"]==request_data["name"]):
+            abort(400,message="store already exists")    
+    new_id=uuid.uuid4().hex #abchwidwjiwdwid not random
+    
+    new_store={**request_data,"id":new_id}
+    stores[new_id]=new_store
+    return new_store , 201
+
+
+@app.delete("/store/<string:store_id>")
+def delete_store(store_id):
+    try:
+        del stores[store_id]
+        return {"message":"store deleted"}
+    except KeyError:
+        abort(401,message="store not found.")
+
+
+@app.get("/item")
+def get_all_items():
+    return {"items":list(items.values())}
+            
+
+
+@app.get("/item/<string:item_id>")
+def get_items(item_id):
+    try:
+        return items[item_id]
+    except KeyError:
+        abort(401,message="Item not found.")
+
+@app.post("/item")
+def create_items():
+    request_data=request.get_json()
+    if ("price" not in request_data
+    or "store_id" not in request_data
+    or "name" not in request_data    
+    ):
+        abort(400,
+        message="bad request.")
+    for item in items.values():
+        if (item["name"]==request_data["name"]):
+            abort(400,message="item already exists")
+    new_id=uuid.uuid4().hex #abchwidwjiwdwid not random
+    
+    new_item={**request_data,"id":new_id}
+    items[new_id]=new_item
+    return new_item , 201
+        
+
+
+@app.put("/item/<item_id>")
+def update_items(item_id):
+    request_data=request.get_json()
+    if ("price" not in request_data
+    or "store_id" not in request_data
+    or "name" not in request_data    
+    ):
+        abort(400,
+        message="bad request.")
+
+    try:
+        item=items[item_id]
+        item |=request_data
+        return item,201
+    except KeyError:
+        abort(401,message="item not found")
+
+
+
+
+@app.delete("/item/<string:item_id>")
+def delete_items(item_id):
+    try:
+        del items[item_id]
+        return {"message":"item deleted"}
+    except KeyError:
+        abort(401,message="Item not found.")
+app.run()
